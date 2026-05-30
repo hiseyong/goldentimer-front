@@ -1,4 +1,42 @@
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
+
+type DummyNotification = {
+  id: string
+  title: string
+  body: string
+  time: string
+  unread?: boolean
+}
+
+const DUMMY_NOTIFICATIONS: DummyNotification[] = [
+  {
+    id: '1',
+    title: 'New transport assignment',
+    body: 'Patient transport to Seoul National University Hospital ER has been assigned.',
+    time: '2 min ago',
+    unread: true,
+  },
+  {
+    id: '2',
+    title: 'ER wait time updated',
+    body: 'Wait time at your selected hospital ER decreased from 15 to 8 minutes.',
+    time: '12 min ago',
+    unread: true,
+  },
+  {
+    id: '3',
+    title: 'Golden time alert',
+    body: 'Suspected stroke patient — recommended transport within 30 minutes.',
+    time: '1 hr ago',
+  },
+  {
+    id: '4',
+    title: 'Staff confirmation complete',
+    body: 'Gangnam Severance Hospital ER is ready to accept the patient.',
+    time: 'Yesterday',
+  },
+]
 
 const NAV_ITEMS = [
   { to: '/patient', label: 'Patient', shortLabel: 'Patient', Icon: PatientIcon },
@@ -37,31 +75,124 @@ export function AppLayout() {
 }
 
 function AppTopBar({ title }: { title: string }) {
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const hasUnread = DUMMY_NOTIFICATIONS.some((n) => n.unread)
+
+  useEffect(() => {
+    if (!notificationsOpen) return
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setNotificationsOpen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [notificationsOpen])
+
   return (
-    <header className="shrink-0 border-b border-slate-800 bg-slate-950 pt-[env(safe-area-inset-top,0px)]">
-      <div className="grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 px-4">
-        <div className="min-w-0">
-          <p className="truncate text-[11px] font-bold uppercase tracking-widest text-blue-400">
-            Golden Time
-          </p>
+    <>
+      <header className="shrink-0 border-b border-slate-800 bg-slate-950 pt-[env(safe-area-inset-top,0px)]">
+        <div className="grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 px-4">
+          <div className="min-w-0">
+            <p className="truncate text-[11px] font-bold uppercase tracking-widest text-blue-400">
+              Golden Time
+            </p>
+          </div>
+
+          <h1 className="max-w-[10rem] truncate text-center text-sm font-semibold text-white sm:max-w-none">
+            {title}
+          </h1>
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setNotificationsOpen(true)}
+              className="relative flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+              aria-label="Notifications"
+              aria-expanded={notificationsOpen}
+            >
+              <BellIcon />
+              {hasUnread && (
+                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-slate-950" />
+              )}
+            </button>
+          </div>
         </div>
+      </header>
 
-        <h1 className="max-w-[10rem] truncate text-center text-sm font-semibold text-white sm:max-w-none">
-          {title}
-        </h1>
+      <NotificationsPanel open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
+    </>
+  )
+}
 
-        <div className="flex justify-end">
+function NotificationsPanel({
+  open,
+  onClose,
+}: {
+  open: boolean
+  onClose: () => void
+}) {
+  if (!open) return null
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+      role="dialog"
+      aria-modal
+      aria-labelledby="notifications-title"
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[70svh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-3">
+          <h2 id="notifications-title" className="text-base font-bold text-slate-900">
+            Notifications
+          </h2>
           <button
             type="button"
-            className="relative flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
-            aria-label="Notifications"
+            onClick={onClose}
+            aria-label="Close notifications"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700"
           >
-            <BellIcon />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-slate-950" />
+            <CloseIcon />
           </button>
         </div>
+
+        <ul className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
+          {DUMMY_NOTIFICATIONS.map((notification) => (
+            <li
+              key={notification.id}
+              className={`border-b border-slate-100 px-4 py-3 last:border-b-0 ${
+                notification.unread ? 'bg-blue-50/60' : ''
+              }`}
+            >
+              <div className="flex items-start gap-2">
+                {notification.unread && (
+                  <span
+                    className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-500"
+                    aria-hidden
+                  />
+                )}
+                <div className={notification.unread ? 'min-w-0 flex-1' : 'min-w-0 flex-1 pl-4'}>
+                  <p className="text-sm font-semibold text-slate-900">{notification.title}</p>
+                  <p className="mt-0.5 text-sm leading-snug text-slate-600">{notification.body}</p>
+                  <p className="mt-1 text-xs text-slate-400">{notification.time}</p>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
-    </header>
+    </div>
+  )
+}
+
+function CloseIcon() {
+  return (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+      <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
+    </svg>
   )
 }
 
