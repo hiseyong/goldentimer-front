@@ -6,6 +6,11 @@ import { createHospitalApi } from '../../api/hospital/hospitalApi'
 import type { ErStatusItem } from '../../api/hospital/types'
 import { env } from '../../config/env'
 import { createSpeechServices } from '../../speech/createSpeechServices'
+import {
+  getSpeechRecognitionAvailability,
+  getSpeechRecognitionUnavailableMessage,
+  type SpeechRecognitionMode,
+} from '../../speech/speechSupport'
 import { loadSpeechVoices } from '../../speech/speechUtils'
 import type { SpeechError } from '../../speech/types'
 import {
@@ -39,6 +44,8 @@ type ParamedicPageState = {
   errorMessage: string | null
   locationPermission: GeolocationPermissionState | 'unknown'
   speechSupported: boolean
+  speechMode: SpeechRecognitionMode
+  speechHint: string | null
   ttsSupported: boolean
   isSpeaking: boolean
 }
@@ -64,6 +71,8 @@ const initialState: ParamedicPageState = {
   errorMessage: null,
   locationPermission: 'unknown',
   speechSupported: true,
+  speechMode: 'none',
+  speechHint: null,
   ttsSupported: true,
   isSpeaking: false,
 }
@@ -78,11 +87,25 @@ export function useParamedicPage() {
     longitude: env.defaultLongitude,
   })
 
-  const [state, setState] = useState<ParamedicPageState>(() => ({
-    ...initialState,
-    speechSupported: speechServices.recognizer.isSupported(),
-    ttsSupported: speechServices.synthesizer.isSupported(),
-  }))
+  const speechAvailability = useMemo(
+    () => getSpeechRecognitionAvailability(env.sttApiUrl),
+    [],
+  )
+
+  const [state, setState] = useState<ParamedicPageState>(() => {
+    const availability = getSpeechRecognitionAvailability(env.sttApiUrl)
+    return {
+      ...initialState,
+      speechSupported: speechServices.recognizer.isSupported(),
+      speechMode: availability.mode,
+      speechHint: availability.mode === 'none'
+        ? getSpeechRecognitionUnavailableMessage(availability)
+        : availability.mode === 'cloud'
+          ? 'Record your report, then tap stop to transcribe.'
+          : null,
+      ttsSupported: speechServices.synthesizer.isSupported(),
+    }
+  })
 
   const loadErStatus = useCallback(async (showLoading = false) => {
     if (showLoading) {
@@ -199,17 +222,24 @@ export function useParamedicPage() {
 
   const startListening = useCallback(() => {
     if (!speechServices.recognizer.isSupported()) {
-      setState((prev) => ({ ...prev, status: 'transcribed' }))
+      setState((prev) => ({
+        ...prev,
+        status: 'error',
+        errorMessage: getSpeechRecognitionUnavailableMessage(speechAvailability),
+      }))
       return
     }
 
     finalTranscriptRef.current = state.transcript
     speechServices.synthesizer.cancel()
 
+    const interimTranscript =
+      speechAvailability.mode === 'cloud' ? 'Recording… tap stop when finished.' : ''
+
     setState((prev) => ({
       ...prev,
       status: 'listening',
-      interimTranscript: '',
+      interimTranscript,
       showRecommendationModal: false,
       assignment: null,
       clientLocation: null,
@@ -217,7 +247,27 @@ export function useParamedicPage() {
     }))
 
     speechServices.recognizer.start({ lang: SPEECH_RECOGNITION_LANG })
-  }, [speechServices, state.transcript])
+  }, [speechAvailability, speechServices, state.transcript])
+
+  const stopListening = useCallback(() => {
+    speechServices.recognizer.stop()
+
+    if (speechAvailability.mode === 'cloud') {
+      setState((prev) => ({
+        ...prev,
+        status: 'listening',
+        interimTranscript: 'Transcribing audio…',
+      }))
+      return
+    }
+
+    setState((prev) => ({
+      ...prev,
+      status: 'transcribed',
+      transcript: finalTranscriptRef.current || prev.interimTranscript,
+      interimTranscript: '',
+    }))
+  }, [speechAvailability.mode, speechServices])
 
   const speakAssignmentMessage = useCallback(
     async (message: string) => {
@@ -240,16 +290,6 @@ export function useParamedicPage() {
     },
     [speechServices],
   )
-
-  const stopListening = useCallback(() => {
-    speechServices.recognizer.stop()
-    setState((prev) => ({
-      ...prev,
-      status: 'transcribed',
-      transcript: finalTranscriptRef.current || prev.interimTranscript,
-      interimTranscript: '',
-    }))
-  }, [speechServices])
 
   const setTranscript = useCallback((transcript: string) => {
     finalTranscriptRef.current = transcript

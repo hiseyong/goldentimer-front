@@ -110,7 +110,11 @@ export function createWebSpeechRecognizer(): SpeechRecognizer {
 
   return {
     isSupported() {
-      return RecognitionCtor !== null
+      return (
+        RecognitionCtor !== null &&
+        typeof window !== 'undefined' &&
+        window.isSecureContext
+      )
     },
 
     start(options) {

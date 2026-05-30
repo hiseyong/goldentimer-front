@@ -23,6 +23,7 @@ export function ParamedicPage() {
         active={isListening}
         transcript={page.displayTranscript}
         speechSupported={page.speechSupported}
+        speechHint={page.speechHint}
         onStart={page.startListening}
         onStop={page.stopListening}
         onTranscriptChange={page.setTranscript}

@@ -2,6 +2,7 @@ type VoiceInputCardProps = {
   active: boolean
   transcript: string
   speechSupported: boolean
+  speechHint?: string | null
   onStart: () => void
   onStop: () => void
   onTranscriptChange: (value: string) => void
@@ -11,6 +12,7 @@ export function VoiceInputCard({
   active,
   transcript,
   speechSupported,
+  speechHint,
   onStart,
   onStop,
   onTranscriptChange,
@@ -53,9 +55,13 @@ export function VoiceInputCard({
         )}
       </div>
 
-      {!speechSupported && (
-        <p className="mb-2 text-xs text-amber-700">
-          Speech recognition unavailable. Type the report below.
+      {speechHint && (
+        <p
+          className={`mb-2 text-xs ${
+            speechSupported ? 'text-slate-600' : 'text-amber-700'
+          }`}
+        >
+          {speechHint}
         </p>
       )}
 
