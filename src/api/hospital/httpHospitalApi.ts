@@ -6,6 +6,8 @@ import type {
   BackendWaitLevel,
   ErMetricStatus,
   ErStatusItem,
+  HospitalRecommendRequest,
+  HospitalRecommendResponse,
   HospitalRecommendationsRequest,
   HospitalRecommendationsResponse,
   HospitalWaitTimeResponse,
@@ -100,6 +102,13 @@ export function createHttpHospitalApi(baseUrl: string): HospitalApi {
   const normalizedBase = baseUrl.replace(/\/$/, '')
 
   return {
+    recommendHospital(request: HospitalRecommendRequest) {
+      return apiRequest<HospitalRecommendResponse>(
+        `${normalizedBase}${HOSPITAL_API_PATHS.recommend}`,
+        { method: 'POST', body: request },
+      )
+    },
+
     getRecommendations(request: HospitalRecommendationsRequest) {
       const params = new URLSearchParams({ transcript: request.transcript })
       return apiRequest<HospitalRecommendationsResponse>(

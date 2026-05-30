@@ -2,6 +2,8 @@ import { env } from '../../config/env'
 import type { HospitalApi } from './hospitalApi'
 import type {
   ErStatusItem,
+  HospitalRecommendRequest,
+  HospitalRecommendResponse,
   HospitalRecommendationsRequest,
   HospitalRecommendationsResponse,
   HospitalRecommendation,
@@ -144,6 +146,38 @@ function buildAnnouncement(top: HospitalRecommendation): string {
 
 export function createMockHospitalApi(): HospitalApi {
   return {
+    async recommendHospital(
+      request: HospitalRecommendRequest,
+    ): Promise<HospitalRecommendResponse> {
+      await delay(700)
+      const symptoms = request.symptoms.trim()
+      if (!symptoms) {
+        throw new Error('Symptoms are required.')
+      }
+
+      const hospital = MOCK_NEARBY.hospitals[0]
+      return {
+        latitude: request.latitude,
+        longitude: request.longitude,
+        symptoms,
+        inferred_capabilities: '심장(흉부)',
+        ktas_level: 2,
+        hospital: {
+          hospital_id: hospital.hospital_id,
+          hospital_name: hospital.hospital_name,
+          distance_km: hospital.distance_km,
+          estimated_travel_minutes: 5,
+          estimated_wait_minutes: hospital.estimated_wait_minutes,
+          total_eta_minutes: hospital.estimated_wait_minutes + 5,
+          wait_level: hospital.wait_level,
+          trauma_center: hospital.trauma_center,
+          stroke_center: hospital.stroke_center,
+          cardiac_center: hospital.cardiac_center,
+        },
+        message: `해당 환자는 ${hospital.hospital_name}으로 추천합니다.\n증상: ${symptoms}`,
+      }
+    },
+
     async getRecommendations(
       request: HospitalRecommendationsRequest,
     ): Promise<HospitalRecommendationsResponse> {

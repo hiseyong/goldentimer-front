@@ -3,6 +3,8 @@ import { createHttpHospitalApi } from './httpHospitalApi'
 import { createMockHospitalApi } from './mockHospitalApi'
 import type {
   ErStatusItem,
+  HospitalRecommendRequest,
+  HospitalRecommendResponse,
   HospitalRecommendationsRequest,
   HospitalRecommendationsResponse,
   HospitalWaitTimeResponse,
@@ -11,6 +13,9 @@ import type {
 } from './types'
 
 export interface HospitalApi {
+  recommendHospital(
+    request: HospitalRecommendRequest,
+  ): Promise<HospitalRecommendResponse>
   getRecommendations(
     request: HospitalRecommendationsRequest,
   ): Promise<HospitalRecommendationsResponse>

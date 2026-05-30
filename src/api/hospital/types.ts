@@ -28,6 +28,35 @@ export type HospitalRecommendationsResponse = {
   announcementText: string
 }
 
+export type HospitalRecommendRequest = {
+  latitude: number
+  longitude: number
+  symptoms: string
+}
+
+export type RecommendedHospitalDetail = {
+  hospital_id: string
+  hospital_name: string
+  distance_km: number
+  estimated_travel_minutes: number
+  estimated_wait_minutes: number
+  total_eta_minutes: number
+  wait_level: BackendWaitLevel
+  trauma_center: boolean
+  stroke_center: boolean
+  cardiac_center: boolean
+}
+
+export type HospitalRecommendResponse = {
+  latitude: number
+  longitude: number
+  symptoms: string
+  inferred_capabilities: string
+  ktas_level: number
+  hospital: RecommendedHospitalDetail
+  message: string
+}
+
 export type ErMetricStatus = 'crowded' | 'normal' | 'available'
 
 export type ErMetric = {

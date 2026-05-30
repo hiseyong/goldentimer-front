@@ -1,7 +1,4 @@
-import { LoadingBlock } from '../../components/ui/LoadingBlock'
-import { HospitalCard } from './components/HospitalCard'
-import { HospitalDetailModal } from './components/HospitalDetailModal'
-import { SymptomTag } from './components/SymptomTag'
+import { RecommendedHospitalCard } from './components/RecommendedHospitalCard'
 import { usePatientSelection } from './usePatientSelection'
 
 export function PatientPage() {
@@ -12,23 +9,24 @@ export function PatientPage() {
       {page.step === 'symptoms' ? (
         <>
           <section>
-            <h2 className="mb-3 text-sm font-semibold text-slate-800">
+            <h2 className="mb-1 text-sm font-semibold text-slate-800">
               Symptom-based pre-triage
             </h2>
-            {page.loading ? (
-              <LoadingBlock />
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {page.symptoms.map((symptom) => (
-                  <SymptomTag
-                    key={symptom.id}
-                    label={symptom.label}
-                    selected={page.selectedSymptomId === symptom.id}
-                    onClick={() => page.selectSymptom(symptom.id)}
-                  />
-                ))}
-              </div>
-            )}
+            <p className="mb-3 text-xs text-slate-500">
+              Describe your symptoms in Korean or English. We will recommend the best ER for
+              your condition.
+            </p>
+            <label className="sr-only" htmlFor="patient-symptoms">
+              Symptoms
+            </label>
+            <textarea
+              id="patient-symptoms"
+              value={page.symptomsText}
+              onChange={(event) => page.setSymptomsText(event.target.value)}
+              placeholder="e.g. 60-year-old male, chest pain and shortness of breath"
+              rows={4}
+              className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            />
           </section>
 
           {page.error && (
@@ -39,37 +37,31 @@ export function PatientPage() {
 
           <button
             type="button"
-            onClick={() => void page.proceedToHospitals()}
-            disabled={page.proceeding || page.loading || !page.selectedSymptomId}
+            onClick={() => void page.proceedToRecommendation()}
+            disabled={page.proceeding || !page.symptomsText.trim()}
             className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-base font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
           >
-            {page.proceeding ? 'Loading…' : 'Next'}
+            {page.proceeding ? 'Finding hospital…' : 'Next'}
             <ArrowRightIcon />
           </button>
         </>
       ) : (
         <>
           <section>
-            <h2 className="mb-1 text-sm font-semibold text-slate-800">
-              Real-time estimated wait time
-            </h2>
-            {page.recommendationNote && (
-              <p className="mb-3 text-xs text-slate-500">{page.recommendationNote}</p>
-            )}
-            {page.loading ? (
-              <LoadingBlock label="Loading hospitals…" />
-            ) : (
-              <ul className="space-y-2">
-                {page.waitTimes.map((hospital) => (
-                  <li key={hospital.hospitalId}>
-                    <HospitalCard
-                      hospital={hospital}
-                      selected={page.selectedHospitalId === hospital.hospitalId}
-                      onClick={() => void page.openHospitalDetail(hospital.hospitalId)}
-                    />
-                  </li>
-                ))}
-              </ul>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-slate-800">
+                Recommended emergency room
+              </h2>
+              <button
+                type="button"
+                onClick={page.goBackToSymptoms}
+                className="shrink-0 text-xs font-medium text-blue-600 hover:underline"
+              >
+                Edit symptoms
+              </button>
+            </div>
+            {page.recommendation && (
+              <RecommendedHospitalCard recommendation={page.recommendation} />
             )}
           </section>
 
@@ -80,14 +72,6 @@ export function PatientPage() {
           )}
         </>
       )}
-
-      <HospitalDetailModal
-        open={page.isDetailOpen}
-        detail={page.hospitalDetail}
-        loading={page.detailLoading}
-        onClose={page.closeHospitalDetail}
-        onRefresh={() => void page.refreshHospitalDetail()}
-      />
     </div>
   )
 }
