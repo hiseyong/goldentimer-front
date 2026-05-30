@@ -1,8 +1,6 @@
 import type { TriageApi } from './triageApi'
 import type {
   HospitalErDetail,
-  PatientRegistrationRequest,
-  PatientRegistrationResponse,
   PreTriageRequest,
   PreTriageResponse,
   TriageOverview,
@@ -128,19 +126,6 @@ export function createMockTriageApi(): TriageApi {
         message: symptom
           ? `Pre-triage started for ${symptom.label}.`
           : 'Pre-triage session started.',
-      }
-    },
-
-    async submitRegistration(
-      request: PatientRegistrationRequest,
-    ): Promise<PatientRegistrationResponse> {
-      await delay(800)
-      if (!request.consentAccepted) {
-        throw new Error('Consent required')
-      }
-      return {
-        registrationId: `reg-${Date.now()}`,
-        message: `Registration completed at ${ER_DETAILS[request.hospitalId]?.hospitalName ?? 'selected hospital'}.`,
       }
     },
   }

@@ -49,22 +49,3 @@ export type TriageOverview = {
   waitTimes: HospitalWaitTime[]
   recommendationNote: string
 }
-
-export type PatientRegistrationRequest = {
-  sessionId?: string
-  hospitalId: string
-  symptomId: string
-  patientName: string
-  age: number
-  gender: string
-  chiefComplaint: string
-  onsetTime: string
-  guardianContact?: string
-  additionalNotes?: string
-  consentAccepted: boolean
-}
-
-export type PatientRegistrationResponse = {
-  registrationId: string
-  message: string
-}

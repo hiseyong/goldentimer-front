@@ -13,17 +13,13 @@ const NAV_ITEMS = [
 
 const PAGE_TITLES: Record<string, string> = {
   '/patient': 'Patient',
-  '/patient/register': 'Registration',
   '/paramedic': 'Paramedic',
   '/medical-staff': 'Medical Staff',
 }
 
-const HIDE_BOTTOM_NAV = ['/patient/register']
-
 export function AppLayout() {
   const { pathname } = useLocation()
   const title = PAGE_TITLES[pathname] ?? 'Golden Timer'
-  const showBottomNav = !HIDE_BOTTOM_NAV.includes(pathname)
 
   return (
     <div className="flex h-svh flex-col overflow-hidden bg-slate-200 text-slate-900 sm:bg-slate-100">
@@ -34,7 +30,7 @@ export function AppLayout() {
           <Outlet />
         </main>
 
-        {showBottomNav && <BottomNav />}
+        <BottomNav />
       </div>
     </div>
   )

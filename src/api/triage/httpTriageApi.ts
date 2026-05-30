@@ -8,8 +8,6 @@ import type {
   HospitalErDetail,
   HospitalWaitTime,
   KtasChange,
-  PatientRegistrationRequest,
-  PatientRegistrationResponse,
   PreTriageRequest,
   PreTriageResponse,
   TriageOverview,
@@ -153,19 +151,6 @@ export function createHttpTriageApi(baseUrl: string): TriageApi {
         message: symptom
           ? `Pre-triage started for ${symptom.label}.`
           : 'Pre-triage session started.',
-      }
-    },
-
-    async submitRegistration(
-      request: PatientRegistrationRequest,
-    ): Promise<PatientRegistrationResponse> {
-      if (!request.consentAccepted) {
-        throw new Error('Consent required')
-      }
-
-      return {
-        registrationId: `local-${Date.now()}`,
-        message: `Registration details saved for ${request.patientName.trim()}. Please proceed to the selected hospital ER.`,
       }
     },
   }

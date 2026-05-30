@@ -6,20 +6,16 @@ type HospitalDetailModalProps = {
   open: boolean
   detail: HospitalErDetail | null
   loading: boolean
-  registering: boolean
   onClose: () => void
   onRefresh: () => void
-  onRegister: () => void
 }
 
 export function HospitalDetailModal({
   open,
   detail,
   loading,
-  registering,
   onClose,
   onRefresh,
-  onRegister,
 }: HospitalDetailModalProps) {
   if (!open) return null
 
@@ -107,23 +103,13 @@ export function HospitalDetailModal({
               {detail.warningText}
             </p>
 
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={onRegister}
-                disabled={registering}
-                className="min-h-12 w-full rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
-              >
-                {registering ? 'Starting…' : 'Register at this Hospital'}
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="min-h-11 w-full rounded-xl border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                Close
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="min-h-11 w-full rounded-xl border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Close
+            </button>
           </>
         )}
       </div>

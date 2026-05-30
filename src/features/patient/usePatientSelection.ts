@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { getApiErrorMessage } from '../../api/client'
 import { createTriageApi } from '../../api/triage/triageApi'
 import type { HospitalErDetail, HospitalWaitTime, SymptomOption } from '../../api/triage/types'
-import type { PatientRegistrationLocationState } from './types'
+
+type PatientSelectionStep = 'symptoms' | 'hospitals'
 
 type PatientSelectionState = {
+  step: PatientSelectionStep
   loading: boolean
   symptoms: SymptomOption[]
   waitTimes: HospitalWaitTime[]
@@ -15,12 +16,12 @@ type PatientSelectionState = {
   detailHospitalId: string | null
   hospitalDetail: HospitalErDetail | null
   detailLoading: boolean
-  sessionId: string | null
-  starting: boolean
+  proceeding: boolean
   error: string | null
 }
 
 const initialState: PatientSelectionState = {
+  step: 'symptoms',
   loading: true,
   symptoms: [],
   waitTimes: [],
@@ -30,15 +31,13 @@ const initialState: PatientSelectionState = {
   detailHospitalId: null,
   hospitalDetail: null,
   detailLoading: false,
-  sessionId: null,
-  starting: false,
+  proceeding: false,
   error: null,
 }
 
 const WAIT_TIMES_POLL_MS = 45_000
 
 export function usePatientSelection() {
-  const navigate = useNavigate()
   const triageApi = useMemo(() => createTriageApi(), [])
   const [state, setState] = useState<PatientSelectionState>(initialState)
 
@@ -145,83 +144,37 @@ export function usePatientSelection() {
     }
   }, [state.detailHospitalId, triageApi])
 
-  const navigateToRegistration = useCallback(
-    async (hospitalId: string) => {
-      const hospital = state.waitTimes.find((h) => h.hospitalId === hospitalId)
-      const symptom = state.symptoms.find((s) => s.id === state.selectedSymptomId)
-
-      if (!state.selectedSymptomId || !symptom) {
-        setState((prev) => ({
-          ...prev,
-          error: 'Please select a symptom to continue.',
-        }))
-        return
-      }
-
-      if (!hospital) return
-
-      setState((prev) => ({ ...prev, starting: true, error: null }))
-
-      try {
-        let sessionId = state.sessionId
-        if (!sessionId) {
-          const preTriage = await triageApi.submitPreTriage({
-            symptomId: state.selectedSymptomId,
-          })
-          sessionId = preTriage.sessionId
-        }
-
-        const locationState: PatientRegistrationLocationState = {
-          hospitalId: hospital.hospitalId,
-          hospitalName: hospital.hospitalName,
-          symptomId: symptom.id,
-          symptomLabel: symptom.label,
-          sessionId: sessionId ?? undefined,
-        }
-
-        closeHospitalDetail()
-        navigate('/patient/register', { state: locationState })
-      } catch (error) {
-        const message = getApiErrorMessage(error, 'Could not start registration.')
-        setState((prev) => ({ ...prev, starting: false, error: message }))
-      }
-    },
-    [
-      closeHospitalDetail,
-      navigate,
-      state.selectedSymptomId,
-      state.sessionId,
-      state.symptoms,
-      state.waitTimes,
-      triageApi,
-    ],
-  )
-
-  const startRegistration = useCallback(() => {
-    if (!state.selectedHospitalId) {
+  const proceedToHospitals = useCallback(async () => {
+    if (!state.selectedSymptomId) {
       setState((prev) => ({
         ...prev,
-        error: 'Please select a hospital from the list.',
+        error: 'Please select a symptom to continue.',
       }))
       return
     }
-    void navigateToRegistration(state.selectedHospitalId)
-  }, [navigateToRegistration, state.selectedHospitalId])
 
-  const registerAtDetailHospital = useCallback(() => {
-    if (state.detailHospitalId) {
-      void navigateToRegistration(state.detailHospitalId)
+    setState((prev) => ({ ...prev, proceeding: true, error: null }))
+
+    try {
+      await triageApi.submitPreTriage({ symptomId: state.selectedSymptomId })
+      setState((prev) => ({
+        ...prev,
+        proceeding: false,
+        step: 'hospitals',
+      }))
+    } catch (error) {
+      const message = getApiErrorMessage(error, 'Could not continue to hospital list.')
+      setState((prev) => ({ ...prev, proceeding: false, error: message }))
     }
-  }, [navigateToRegistration, state.detailHospitalId])
+  }, [state.selectedSymptomId, triageApi])
 
   return {
     ...state,
     isDetailOpen: Boolean(state.detailHospitalId),
     selectSymptom,
+    proceedToHospitals,
     openHospitalDetail,
     closeHospitalDetail,
     refreshHospitalDetail,
-    startRegistration,
-    registerAtDetailHospital,
   }
 }

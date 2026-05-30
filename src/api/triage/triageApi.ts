@@ -3,8 +3,6 @@ import { createHttpTriageApi } from './httpTriageApi'
 import { createMockTriageApi } from './mockTriageApi'
 import type {
   HospitalErDetail,
-  PatientRegistrationRequest,
-  PatientRegistrationResponse,
   PreTriageRequest,
   PreTriageResponse,
   TriageOverview,
@@ -14,9 +12,6 @@ export interface TriageApi {
   getOverview(): Promise<TriageOverview>
   getHospitalDetail(hospitalId: string): Promise<HospitalErDetail>
   submitPreTriage(request: PreTriageRequest): Promise<PreTriageResponse>
-  submitRegistration(
-    request: PatientRegistrationRequest,
-  ): Promise<PatientRegistrationResponse>
 }
 
 export function createTriageApi(): TriageApi {

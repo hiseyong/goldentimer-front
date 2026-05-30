@@ -1,5 +1,4 @@
-const DEFAULT_API_BASE_URL =
-  'http://ec2-3-35-26-152.ap-northeast-2.compute.amazonaws.com'
+const DEFAULT_API_BASE_URL = 'https://api.hasclassmatching.com'
 
 const parseBool = (value: string | undefined, defaultValue: boolean): boolean => {
   if (value === undefined || value === '') return defaultValue
@@ -15,9 +14,7 @@ const parseNumber = (value: string | undefined, defaultValue: number): number =>
 const resolveApiBaseUrl = (): string => {
   const configured = import.meta.env.VITE_API_BASE_URL
   if (configured !== undefined && configured !== '') return configured
-  // Dev: empty → Vite dev-server proxies /api. Prod: fall back to backend origin.
-  if (import.meta.env.PROD) return DEFAULT_API_BASE_URL
-  return ''
+  return DEFAULT_API_BASE_URL
 }
 
 const resolveUseMockApi = (): boolean => {
