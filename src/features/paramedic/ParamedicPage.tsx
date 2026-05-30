@@ -52,7 +52,14 @@ export function ParamedicPage() {
         )}
 
         {page.assignment?.message && !page.showRecommendationModal && (
-          <AssignmentMessageCard message={page.assignment.message} />
+          <AssignmentMessageCard
+            message={page.assignment.message}
+            onSpeak={() => {
+              void page.speakAssignmentMessage(page.assignment!.message)
+            }}
+            speaking={page.isSpeaking}
+            ttsSupported={page.ttsSupported}
+          />
         )}
 
         {page.assignment && page.clientLocation && !page.showRecommendationModal && (
@@ -69,6 +76,7 @@ export function ParamedicPage() {
         }}
         disabled={
           page.status === 'submitting' ||
+          page.status === 'announcing' ||
           !isSecureGeolocationContext() ||
           page.locationPermission === 'unsupported'
         }
@@ -76,7 +84,9 @@ export function ParamedicPage() {
       >
         {page.status === 'submitting'
           ? 'Allow location if prompted…'
-          : 'Get AI Hospital Recommendation'}
+          : page.status === 'announcing'
+            ? 'Reading recommendation…'
+            : 'Get AI Hospital Recommendation'}
       </button>
 
       {page.assignment && !page.showRecommendationModal && (
@@ -100,6 +110,15 @@ export function ParamedicPage() {
         onClose={page.closeRecommendationModal}
         onTransport={page.transportToFirst}
         onViewListAgain={page.openRecommendationModal}
+        onSpeakMessage={
+          page.assignment?.message
+            ? () => {
+                void page.speakAssignmentMessage(page.assignment!.message)
+              }
+            : undefined
+        }
+        speaking={page.isSpeaking}
+        ttsSupported={page.ttsSupported}
       />
     </div>
   )

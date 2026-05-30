@@ -6,6 +6,7 @@ import { createHospitalApi } from '../../api/hospital/hospitalApi'
 import type { ErStatusItem } from '../../api/hospital/types'
 import { env } from '../../config/env'
 import { createSpeechServices } from '../../speech/createSpeechServices'
+import { loadSpeechVoices } from '../../speech/speechUtils'
 import type { SpeechError } from '../../speech/types'
 import {
   beginLocationRequest,
@@ -39,9 +40,12 @@ type ParamedicPageState = {
   locationPermission: GeolocationPermissionState | 'unknown'
   speechSupported: boolean
   ttsSupported: boolean
+  isSpeaking: boolean
 }
 
 const ER_STATUS_POLL_MS = 45_000
+const SPEECH_RECOGNITION_LANG = 'en-US'
+const SPEECH_SYNTHESIS_LANG = 'en-US'
 
 const SAMPLE_TRANSCRIPT =
   'Male, 62 years old, chest pain, alert consciousness, SpO2 91%.'
@@ -61,6 +65,7 @@ const initialState: ParamedicPageState = {
   locationPermission: 'unknown',
   speechSupported: true,
   ttsSupported: true,
+  isSpeaking: false,
 }
 
 export function useParamedicPage() {
@@ -151,6 +156,12 @@ export function useParamedicPage() {
   }, [loadErStatus])
 
   useEffect(() => {
+    if (speechServices.synthesizer.isSupported()) {
+      void loadSpeechVoices()
+    }
+  }, [speechServices])
+
+  useEffect(() => {
     const { recognizer } = speechServices
 
     recognizer.onResult((text, isFinal) => {
@@ -205,8 +216,30 @@ export function useParamedicPage() {
       errorMessage: null,
     }))
 
-    speechServices.recognizer.start({ lang: 'en-US' })
+    speechServices.recognizer.start({ lang: SPEECH_RECOGNITION_LANG })
   }, [speechServices, state.transcript])
+
+  const speakAssignmentMessage = useCallback(
+    async (message: string) => {
+      const text = message.trim()
+      if (!text || !speechServices.synthesizer.isSupported()) {
+        return false
+      }
+
+      setState((prev) => ({ ...prev, isSpeaking: true }))
+      try {
+        await speechServices.synthesizer.speak(text, {
+          lang: SPEECH_SYNTHESIS_LANG,
+        })
+        return true
+      } catch {
+        return false
+      } finally {
+        setState((prev) => ({ ...prev, isSpeaking: false }))
+      }
+    },
+    [speechServices],
+  )
 
   const stopListening = useCallback(() => {
     speechServices.recognizer.stop()
@@ -271,14 +304,8 @@ export function useParamedicPage() {
         showRecommendationModal: true,
       }))
 
-      if (speechServices.synthesizer.isSupported()) {
-        try {
-          await speechServices.synthesizer.speak(response.message, {
-            lang: 'ko-KR',
-          })
-        } catch {
-          // non-fatal
-        }
+      if (speechServices.synthesizer.isSupported() && response.message.trim()) {
+        await speakAssignmentMessage(response.message)
       }
 
       setState((prev) => ({
@@ -309,6 +336,7 @@ export function useParamedicPage() {
     loadErStatus,
     refreshLocationPermission,
     speechServices,
+    speakAssignmentMessage,
     state.transcript,
   ])
 
@@ -366,5 +394,6 @@ export function useParamedicPage() {
     dismissError,
     refreshLocationPermission,
     reloadErStatus: () => loadErStatus(true),
+    speakAssignmentMessage,
   }
 }

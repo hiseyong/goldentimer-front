@@ -4,6 +4,12 @@ import type {
   SpeechRecognizer,
   SpeechSynthesizer,
 } from './types'
+import {
+  getBestTranscript,
+  loadSpeechVoices,
+  normalizeSpeechText,
+  pickVoiceForLang,
+} from './speechUtils'
 
 type SpeechRecognitionConstructor = new () => SpeechRecognition
 
@@ -35,11 +41,22 @@ function mapRecognitionError(event: SpeechRecognitionErrorEvent): SpeechError {
   return { code, message: messages[code] }
 }
 
+function restartRecognition(instance: SpeechRecognition) {
+  window.setTimeout(() => {
+    try {
+      instance.start()
+    } catch {
+      // Already running or stopping; onend will retry if still active.
+    }
+  }, 150)
+}
+
 export function createWebSpeechRecognizer(): SpeechRecognizer {
   const RecognitionCtor = getSpeechRecognitionConstructor()
   let recognition: SpeechRecognition | null = null
   let resultCallback: ((text: string, isFinal: boolean) => void) | null = null
   let errorCallback: ((error: SpeechError) => void) | null = null
+  let active = false
 
   const ensureRecognition = (): SpeechRecognition | null => {
     if (!RecognitionCtor) return null
@@ -47,6 +64,7 @@ export function createWebSpeechRecognizer(): SpeechRecognizer {
       recognition = new RecognitionCtor()
       recognition.continuous = true
       recognition.interimResults = true
+      recognition.maxAlternatives = 3
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         let interim = ''
@@ -54,7 +72,7 @@ export function createWebSpeechRecognizer(): SpeechRecognizer {
 
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i]
-          const transcript = result[0]?.transcript ?? ''
+          const transcript = getBestTranscript(result)
           if (result.isFinal) {
             final += transcript
           } else {
@@ -69,7 +87,22 @@ export function createWebSpeechRecognizer(): SpeechRecognizer {
       }
 
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        if (!active) return
+
+        if (event.error === 'no-speech' || event.error === 'aborted') {
+          if (recognition) {
+            restartRecognition(recognition)
+          }
+          return
+        }
+
         errorCallback?.(mapRecognitionError(event))
+      }
+
+      recognition.onend = () => {
+        if (active && recognition) {
+          restartRecognition(recognition)
+        }
       }
     }
     return recognition
@@ -89,16 +122,19 @@ export function createWebSpeechRecognizer(): SpeechRecognizer {
         })
         return
       }
+
+      active = true
       instance.lang = options?.lang ?? 'en-US'
       try {
         instance.start()
       } catch {
         instance.stop()
-        instance.start()
+        restartRecognition(instance)
       }
     },
 
     stop() {
+      active = false
       recognition?.stop()
     },
 
@@ -111,6 +147,7 @@ export function createWebSpeechRecognizer(): SpeechRecognizer {
     },
 
     dispose() {
+      active = false
       recognition?.abort()
       recognition = null
       resultCallback = null
@@ -125,21 +162,53 @@ export function createWebSpeechSynthesizer(): SpeechSynthesizer {
       return 'speechSynthesis' in window
     },
 
-    speak(text, options) {
+    async speak(text, options) {
+      if (!this.isSupported()) {
+        throw new Error('Speech synthesis is not supported.')
+      }
+
+      const normalizedText = normalizeSpeechText(text)
+      if (!normalizedText) {
+        return
+      }
+
+      const lang = options?.lang ?? 'en-US'
+      const voices = await loadSpeechVoices()
+      const voice = pickVoiceForLang(voices, lang)
+
+      window.speechSynthesis.cancel()
+
       return new Promise((resolve, reject) => {
-        if (!this.isSupported()) {
-          reject(new Error('Speech synthesis is not supported.'))
-          return
+        const utterance = new SpeechSynthesisUtterance(normalizedText)
+        utterance.lang = lang
+        utterance.rate = 0.92
+        if (voice) {
+          utterance.voice = voice
         }
 
-        window.speechSynthesis.cancel()
-        const utterance = new SpeechSynthesisUtterance(text)
-        utterance.lang = options?.lang ?? 'en-US'
-        utterance.rate = 0.95
+        utterance.onend = () => {
+          window.clearInterval(resumeIntervalId)
+          resolve()
+        }
 
-        utterance.onend = () => resolve()
-        utterance.onerror = () =>
+        utterance.onerror = (event) => {
+          window.clearInterval(resumeIntervalId)
+          if (event.error === 'interrupted' || event.error === 'canceled') {
+            resolve()
+            return
+          }
           reject(new Error('Failed to play voice guidance.'))
+        }
+
+        // Chrome can pause long utterances unless synthesis is resumed periodically.
+        const resumeIntervalId = window.setInterval(() => {
+          if (!window.speechSynthesis.speaking) {
+            window.clearInterval(resumeIntervalId)
+            return
+          }
+          window.speechSynthesis.pause()
+          window.speechSynthesis.resume()
+        }, 10_000)
 
         window.speechSynthesis.speak(utterance)
       })

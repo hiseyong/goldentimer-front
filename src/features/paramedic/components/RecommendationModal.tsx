@@ -13,6 +13,9 @@ type RecommendationModalProps = {
   onClose: () => void
   onTransport: () => void
   onViewListAgain: () => void
+  onSpeakMessage?: () => void
+  speaking?: boolean
+  ttsSupported?: boolean
 }
 
 function buildHospitalTags(hospital: CreateAssignmentResponse['hospital']): StatusTagType[] {
@@ -41,6 +44,9 @@ export function RecommendationModal({
   onClose,
   onTransport,
   onViewListAgain,
+  onSpeakMessage,
+  speaking = false,
+  ttsSupported = false,
 }: RecommendationModalProps) {
   if (!open || !assignment) return null
 
@@ -111,7 +117,13 @@ export function RecommendationModal({
 
         {message && (
           <div className="mb-4">
-            <AssignmentMessageCard message={message} />
+            <AssignmentMessageCard
+              message={message}
+              compact
+              onSpeak={onSpeakMessage}
+              speaking={speaking}
+              ttsSupported={ttsSupported}
+            />
           </div>
         )}
 
