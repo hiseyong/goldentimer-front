@@ -3,23 +3,20 @@ import { waitSeverityStyles } from '../waitSeverityStyles'
 
 type HospitalCardProps = {
   hospital: HospitalWaitTime
-  selected: boolean
-  onClick: () => void
+  selected?: boolean
+  onClick?: () => void
 }
 
-export function HospitalCard({ hospital, selected, onClick }: HospitalCardProps) {
+export function HospitalCard({ hospital, selected = false, onClick }: HospitalCardProps) {
   const styles = waitSeverityStyles[hospital.waitSeverity]
+  const className = `flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
+    selected
+      ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-200'
+      : 'border-slate-200 bg-white hover:border-slate-300'
+  }`
 
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
-        selected
-          ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-200'
-          : 'border-slate-200 bg-white hover:border-slate-300'
-      }`}
-    >
+  const content = (
+    <>
       <div className="min-w-0 flex-1 pr-3">
         <p className="truncate text-sm font-semibold text-slate-800">
           {hospital.hospitalName}
@@ -34,6 +31,16 @@ export function HospitalCard({ hospital, selected, onClick }: HospitalCardProps)
         </span>
         <span className="text-[10px] font-medium text-slate-500">min</span>
       </div>
-    </button>
+    </>
   )
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={className}>
+        {content}
+      </button>
+    )
+  }
+
+  return <div className={className}>{content}</div>
 }

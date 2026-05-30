@@ -1,4 +1,7 @@
+import { HospitalCard } from './components/HospitalCard'
 import { RecommendedHospitalCard } from './components/RecommendedHospitalCard'
+import { SymptomTag } from './components/SymptomTag'
+import { PATIENT_SYMPTOM_OPTIONS } from './symptomOptions'
 import { usePatientSelection } from './usePatientSelection'
 
 export function PatientPage() {
@@ -13,20 +16,36 @@ export function PatientPage() {
               Symptom-based pre-triage
             </h2>
             <p className="mb-3 text-xs text-slate-500">
-              Describe your symptoms in Korean or English. We will recommend the best ER for
-              your condition.
+              Select your main symptom. We will recommend the best ER for your condition on the
+              next step.
             </p>
-            <label className="sr-only" htmlFor="patient-symptoms">
-              Symptoms
-            </label>
-            <textarea
-              id="patient-symptoms"
-              value={page.symptomsText}
-              onChange={(event) => page.setSymptomsText(event.target.value)}
-              placeholder="e.g. 60-year-old male, chest pain and shortness of breath"
-              rows={4}
-              className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-            />
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Symptoms">
+              {PATIENT_SYMPTOM_OPTIONS.map((symptom) => (
+                <SymptomTag
+                  key={symptom.id}
+                  label={symptom.label}
+                  selected={page.selectedSymptomId === symptom.id}
+                  onClick={() => page.selectSymptom(symptom.id)}
+                />
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-sm font-semibold text-slate-800">Nearby emergency rooms</h2>
+            {page.loadingNearby ? (
+              <p className="text-sm text-slate-500">Loading nearby hospitals…</p>
+            ) : page.nearbyHospitals.length === 0 ? (
+              <p className="text-sm text-slate-500">No nearby hospitals found.</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {page.nearbyHospitals.map((hospital) => (
+                  <li key={hospital.hospitalId}>
+                    <HospitalCard hospital={hospital} />
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
           {page.error && (
@@ -38,7 +57,7 @@ export function PatientPage() {
           <button
             type="button"
             onClick={() => void page.proceedToRecommendation()}
-            disabled={page.proceeding || !page.symptomsText.trim()}
+            disabled={page.proceeding || !page.selectedSymptomId}
             className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-base font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
           >
             {page.proceeding ? 'Finding hospital…' : 'Next'}
