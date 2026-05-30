@@ -30,11 +30,8 @@ export function AssignmentWaitTimeCard({
   waitTime,
   compact = false,
 }: AssignmentWaitTimeCardProps) {
-  const { breakdown } = waitTime
-  const hasBreakdown =
-    breakdown.bed_pressure_minutes > 0 ||
-    breakdown.existing_patient_minutes > 0 ||
-    breakdown.incoming_queue_minutes > 0
+  const totalMinutes =
+    waitTime.travel_minutes + waitTime.estimated_wait_minutes
 
   return (
     <section
@@ -54,14 +51,14 @@ export function AssignmentWaitTimeCard({
           compact={compact}
         />
         <MetricTile
-          label="Distance"
-          value={`${waitTime.distance_km.toFixed(1)} km`}
+          label="Total (travel + ambulance arrival wait)"
+          value={`${totalMinutes} min`}
+          highlight
           compact={compact}
         />
         <MetricTile
-          label="Est. wait on arrival"
+          label="Est. wait on ambulance arrival"
           value={`${waitTime.estimated_wait_minutes} min`}
-          highlight
           compact={compact}
         />
         <div
@@ -82,27 +79,6 @@ export function AssignmentWaitTimeCard({
           </span>
         </div>
       </div>
-
-      {hasBreakdown && (
-        <div className="mt-2 rounded-lg bg-slate-50 px-2.5 py-2 text-[11px] text-slate-600">
-          <p className="mb-1 font-medium text-slate-700">Wait breakdown</p>
-          <ul className="space-y-0.5">
-            {breakdown.bed_pressure_minutes > 0 && (
-              <li>Bed availability: {breakdown.bed_pressure_minutes} min</li>
-            )}
-            {breakdown.existing_patient_minutes > 0 && (
-              <li>
-                Existing patients: {breakdown.existing_patient_minutes} min
-              </li>
-            )}
-            {breakdown.incoming_queue_minutes > 0 && (
-              <li>
-                Incoming queue: {breakdown.incoming_queue_minutes} min
-              </li>
-            )}
-          </ul>
-        </div>
-      )}
     </section>
   )
 }
