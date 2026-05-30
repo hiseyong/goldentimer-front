@@ -1,3 +1,6 @@
+const DEFAULT_API_BASE_URL =
+  'http://ec2-3-35-26-152.ap-northeast-2.compute.amazonaws.com'
+
 const parseBool = (value: string | undefined, defaultValue: boolean): boolean => {
   if (value === undefined || value === '') return defaultValue
   return value === 'true' || value === '1'
@@ -9,9 +12,26 @@ const parseNumber = (value: string | undefined, defaultValue: number): number =>
   return Number.isFinite(parsed) ? parsed : defaultValue
 }
 
+const resolveApiBaseUrl = (): string => {
+  const configured = import.meta.env.VITE_API_BASE_URL
+  if (configured !== undefined && configured !== '') return configured
+  // Dev: empty → Vite dev-server proxies /api. Prod: fall back to backend origin.
+  if (import.meta.env.PROD) return DEFAULT_API_BASE_URL
+  return ''
+}
+
+const resolveUseMockApi = (): boolean => {
+  const configured = import.meta.env.VITE_USE_MOCK_API
+  if (configured !== undefined && configured !== '') {
+    return parseBool(configured, false)
+  }
+  // Dev defaults to mock when unset; production defaults to real API.
+  return !import.meta.env.PROD
+}
+
 export const env = {
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL ?? '',
-  useMockApi: parseBool(import.meta.env.VITE_USE_MOCK_API, true),
+  apiBaseUrl: resolveApiBaseUrl(),
+  useMockApi: resolveUseMockApi(),
   paramedicId: import.meta.env.VITE_PARAMEDIC_ID ?? 'EMT-001',
   hospitalId:
     import.meta.env.VITE_HOSPITAL_ID ?? '787337ac-d703-4480-b15a-916d7e2adae8',
